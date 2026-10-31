@@ -1,8 +1,12 @@
-from decimal import Decimal
 from datetime import date
-from typing import Optional, Literal, List
+from decimal import Decimal
+from typing import Optional, List, Literal
 from pydantic import BaseModel, Field, model_validator, ConfigDict
 
+
+# ==========================================
+# DISCOUNT SCHEMAS
+# ==========================================
 
 class DiscountBase(BaseModel):
     code: str = Field(..., min_length=2, max_length=50, description="Unique discount code, e.g. SUMMER20")
@@ -49,7 +53,7 @@ class DiscountUpdate(BaseModel):
 
     @model_validator(mode="after")
     def validate_discount_update(self):
-        if self.discount_type == "PERCENTAGE" and self.value is not None and self.value > Decimal("100.00"):
+        if self.value is not None and self.value > Decimal("100.00") and self.discount_type == "PERCENTAGE":
             raise ValueError("Percentage discount value cannot exceed 100%")
         if self.start_date and self.end_date and self.end_date < self.start_date:
             raise ValueError("end_date cannot be earlier than start_date")
@@ -59,7 +63,6 @@ class DiscountUpdate(BaseModel):
 class DiscountResponse(DiscountBase):
     id: int
     used_count: int = Field(..., description="Number of times this discount has been redeemed")
-
     model_config = ConfigDict(from_attributes=True)
 
 
