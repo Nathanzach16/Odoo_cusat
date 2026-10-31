@@ -1,8 +1,10 @@
 from datetime import date, timedelta
 from decimal import Decimal
+from html import escape
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import HTMLResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -109,3 +111,36 @@ def cancel_invoice(invoice_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(invoice)
     return invoice
+
+
+@router.post("/{invoice_id}/send")
+def send_invoice(invoice_id: int, db: Session = Depends(get_db)):
+    """Send a CONFIRMED or PAID invoice to the customer (simulated: no real email yet)."""
+    invoice = get_invoice_or_404(db, invoice_id)
+    if invoice.status not in ("CONFIRMED", "PAID"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Confirm the invoice before sending it (this one is {invoice.status})")
+    return {"message": f"Invoice {invoice.number} sent to customer {invoice.customer_id}",
+            "print_url": f"/invoices/{invoice.id}/print"}
+
+
+@router.get("/{invoice_id}/print", response_class=HTMLResponse)
+def print_invoice(invoice_id: int, db: Session = Depends(get_db)):
+    """A printable invoice page: open it in the browser and press Cmd + P."""
+    inv = get_invoice_or_404(db, invoice_id)
+    rows = "".join(
+        f"<tr><td>{escape(l.description)}</td><td>{l.quantity}</td><td>{l.unit_price}</td>"
+        f"<td>{l.tax_rate}%</td><td>{l.amount}</td></tr>"
+        for l in inv.lines
+    )
+    return f"""<!doctype html><html><head><meta charset="utf-8"><title>{inv.number}</title>
+<style>body{{font-family:system-ui,sans-serif;max-width:720px;margin:40px auto;color:#222}}
+table{{width:100%;border-collapse:collapse;margin:24px 0}}th,td{{padding:8px;border-bottom:1px solid #ddd;text-align:left}}
+.right{{text-align:right}}.status{{padding:2px 8px;border:1px solid #888;border-radius:4px}}</style></head><body>
+<h1>Brightloop Software</h1>
+<p><strong>Invoice {inv.number}</strong> <span class="status">{inv.status}</span></p>
+<p>Customer #{inv.customer_id} &middot; Subscription #{inv.subscription_id}<br>
+Period {inv.period_start} to {inv.period_end} &middot; Issued {inv.invoice_date} &middot; Due {inv.due_date}</p>
+<table><tr><th>Product</th><th>Qty</th><th>Unit price</th><th>Tax</th><th>Amount</th></tr>{rows}</table>
+<p class="right">Subtotal: {inv.subtotal}<br>Discount: {inv.discount_total}<br>Tax: {inv.tax_total}<br>
+<strong>Total: {inv.total}</strong><br>Paid: {inv.amount_paid}<br><strong>Balance due: {inv.total - inv.amount_paid}</strong></p>
+</body></html>"""
