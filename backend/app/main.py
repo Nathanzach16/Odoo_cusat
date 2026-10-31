@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+<<<<<<< HEAD
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
 import app.models  # ensure all models register with Base metadata
@@ -38,3 +39,19 @@ except ImportError:
 @app.get("/")
 def root():
     return {"status": "System operational", "service": "Brightloop Subscription Management System"}
+=======
+from app.api import auth, taxes
+from app.database import engine, Base
+from app.models import user as user_model
+from app.models import tax, invoice, payment  # noqa: F401  (registers billing tables)
+
+Base.metadata.create_all(bind=engine)
+app = FastAPI(title="Subscription Management System API")
+
+app.include_router(auth.router)
+app.include_router(taxes.router)
+
+@app.get("/")
+def root():
+    return {"status": "System operational"}
+>>>>>>> origin/main
