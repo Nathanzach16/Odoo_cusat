@@ -1,22 +1,15 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import AuthPage from './pages/auth/AuthPage';
+import DashboardPage from './pages/DashboardPage';
 import AdminStaffPage from './pages/admin/AdminStaffPage';
+import Navbar from './components/Navbar';
 import { RequireAuth } from './components/guards/RequireAuth';
 
-function Dashboard() {
-  const role = localStorage.getItem('role');
-  const email = localStorage.getItem('email');
-
+function AppLayout() {
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold">Welcome, {email}!</h1>
-      <p className="mt-2 text-gray-600">Your role: <span className="font-semibold text-blue-600">{role}</span></p>
-      <button
-        onClick={() => { localStorage.clear(); window.location.href = '/auth/login'; }}
-        className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md text-sm"
-      >
-        Logout
-      </button>
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8">
+      <Navbar />
+      <Outlet />
     </div>
   );
 }
@@ -25,28 +18,47 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Default route redirects to login */}
-        <Route path="/" element={<Navigate to="/auth/login" replace />} />
+        {/* Default route redirects to frontend login view */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* Public Auth Route (T07) */}
-        <Route path="/auth/login" element={<AuthPage />} />
+        {/* Public Login/Signup View */}
+        <Route path="/login" element={<AuthPage />} />
 
-        {/* Protected User Dashboard */}
+        {/* Authenticated Protected Routes */}
         <Route element={<RequireAuth />}>
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route element={<AppLayout />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+
+            {/* Admin Restricted Route */}
+            <Route element={<RequireAuth allowedRoles={['ADMIN']} />}>
+              <Route path="/admin/staff" element={<AdminStaffPage />} />
+            </Route>
+          </Route>
         </Route>
 
-        {/* Protected Admin Only Route (T08 & T09) */}
-        <Route element={<RequireAuth allowedRoles={['ADMIN']} />}>
-          <Route path="/admin/staff" element={<AdminStaffPage />} />
-        </Route>
-
-        {/* Unauthorized Fallback */}
-        <Route path="/unauthorized" element={
-          <div className="p-8 text-center text-red-600 font-semibold">
-            Access Denied: You do not have permission to view this page.
-          </div>
-        } />
+        {/* Access Denied Fallback View */}
+        <Route
+          path="/unauthorized"
+          element={
+            <div className="min-h-screen flex items-center justify-center p-4">
+              <div className="glass-card max-w-md w-full p-8 text-center space-y-4">
+                <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
+                  !
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">Access Denied</h2>
+                <p className="text-sm text-gray-600">
+                  Your current account role does not have permission to access this route.
+                </p>
+                <button
+                  onClick={() => (window.location.href = '/dashboard')}
+                  className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-md text-sm"
+                >
+                  Return to Dashboard
+                </button>
+              </div>
+            </div>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );
