@@ -12,6 +12,13 @@ export default function AuthPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleToggleMode = () => {
+    setIsLogin(!isLogin);
+    setError('');
+    setMessage('');
+    setFormData({ email: '', password: '', role: 'USER' });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -29,26 +36,36 @@ export default function AuthPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || 'Authentication failed');
+        let errorMessage = 'Authentication failed';
+        if (typeof data.detail === 'string') {
+          errorMessage = data.detail;
+        } else if (Array.isArray(data.detail)) {
+          errorMessage = data.detail.map((err) => `${err.loc?.[1] || 'Field'}: ${err.msg}`).join(', ');
+        }
+        throw new Error(errorMessage);
       }
 
       if (isLogin) {
-        // Save auth context in localStorage
-        localStorage.setItem('token', 'authenticated_user_session'); 
-        localStorage.setItem('role', data.role);
-        localStorage.setItem('email', data.email);
+        const token = data.access_token || data.token || 'authenticated_user_session';
+        const role = data.role || formData.role;
+        const email = data.email || formData.email;
+
+        localStorage.setItem('token', token);
+        localStorage.setItem('role', role);
+        localStorage.setItem('email', email);
 
         setMessage('Login successful! Redirecting...');
         setTimeout(() => {
-          if (data.role === 'ADMIN') {
+          if (role === 'ADMIN') {
             navigate('/admin/staff');
           } else {
             navigate('/dashboard');
           }
         }, 1000);
       } else {
-        setMessage(data.message);
-        setIsLogin(true); // Switch to login view after successful signup
+        setMessage(data.message || 'Account created successfully! Please sign in.');
+        setIsLogin(true);
+        setFormData({ email: '', password: '', role: 'USER' });
       }
     } catch (err) {
       setError(err.message);
@@ -56,10 +73,10 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4">
-      <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-md border border-gray-200">
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-          {isLogin ? 'Sign In' : 'Create Account'}
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="glass-card max-w-md w-full p-8">
+        <h2 className="text-3xl font-extrabold text-center text-gray-900 mb-6 tracking-tight">
+          {isLogin ? 'Welcome Back' : 'Create Account'}
         </h2>
 
         {error && <div className="mb-4 p-3 bg-red-100 text-red-700 text-sm rounded-md">{error}</div>}
@@ -72,7 +89,7 @@ export default function AuthPage() {
               name="email"
               type="email"
               required
-              className="mt-1 block w-full px-3 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 block w-full px-3 py-2 border rounded-md text-sm"
               value={formData.email}
               onChange={handleChange}
             />
@@ -84,7 +101,7 @@ export default function AuthPage() {
               name="password"
               type="password"
               required
-              className="mt-1 block w-full px-3 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 block w-full px-3 py-2 border rounded-md text-sm"
               value={formData.password}
               onChange={handleChange}
             />
@@ -108,7 +125,7 @@ export default function AuthPage() {
 
           <button
             type="submit"
-            className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm transition-colors"
+            className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md text-sm shadow-sm"
           >
             {isLogin ? 'Sign In' : 'Sign Up'}
           </button>
@@ -116,8 +133,9 @@ export default function AuthPage() {
 
         <div className="mt-4 text-center">
           <button
-            onClick={() => { setIsLogin(!isLogin); setError(''); setMessage(''); }}
-            className="text-sm text-blue-600 hover:underline"
+            type="button"
+            onClick={handleToggleMode}
+            className="text-sm text-indigo-600 hover:underline font-medium"
           >
             {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
           </button>
