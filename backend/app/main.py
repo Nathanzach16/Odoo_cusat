@@ -2,19 +2,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
-import app.models  # Ensure all models register with Base metadata
+import app.models
 
-from app.api import auth, catalog, quotes, discounts, taxes
-from app.models import invoice, payment  # noqa: F401
+from app.api import auth, catalog, taxes, billing, payments
+from app.models import invoice, payment
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Brightloop Subscription Management System API",
-    description=(
-        "Backend API for Products, Plans, Taxes, Quotes, "
-        "Subscriptions, Discounts, Invoicing, and Authentication"
-    ),
+    description="Backend API for Products, Plans, Taxes, Invoicing, Payments, and Authentication",
     version="1.0.0",
 )
 
@@ -28,12 +25,12 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(catalog.router)
-app.include_router(quotes.router)
-app.include_router(discounts.router)
 app.include_router(taxes.router)
+app.include_router(billing.router)
+app.include_router(payments.router)
 
 
-@app.get("/")
+app.get("/")
 def root():
     return {
         "status": "System operational",
