@@ -1,0 +1,10 @@
+from fastapi import FastAPI
+from app.api import auth
+
+app = FastAPI(title="Subscription Management System API")
+
+app.include_router(auth.router)
+
+@app.get("/")
+def root():
+    return {"status": "System operational"}
