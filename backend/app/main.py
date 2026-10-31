@@ -3,8 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
 import app.models  # Ensure all models register with Base metadata
-
-from app.api import auth, catalog, quotes, discounts, taxes, billing, payments
+from app.api import auth, taxes, billing, payments
 from app.models import invoice, payment  # noqa: F401
 
 
@@ -31,9 +30,7 @@ app.add_middleware(
 
 # Register API routers
 app.include_router(auth.router)
-app.include_router(catalog.router)
-app.include_router(quotes.router)
-app.include_router(discounts.router)
+
 app.include_router(taxes.router)
 app.include_router(billing.router)
 app.include_router(payments.router)
