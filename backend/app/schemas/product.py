@@ -1,11 +1,11 @@
-from decimal import Decimal
 from datetime import date
+from decimal import Decimal
 from typing import Optional, List, Literal
 from pydantic import BaseModel, Field, model_validator, ConfigDict
 
 
 # ==========================================
-# PRODUCT SCHEMAS (Task T10, T17)
+# PRODUCT SCHEMAS
 # ==========================================
 
 class ProductBase(BaseModel):
@@ -32,19 +32,18 @@ class ProductUpdate(BaseModel):
 
 class ProductResponse(ProductBase):
     id: int
-
     model_config = ConfigDict(from_attributes=True)
 
 
 # ==========================================
-# VARIANT SCHEMAS (Task T11, T17)
+# VARIANT SCHEMAS
 # ==========================================
 
 class VariantBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, description="Variant name")
     sku: Optional[str] = Field(None, max_length=50, description="Optional SKU")
     brand: Optional[str] = Field(None, max_length=100, description="Brand name, e.g. Odoo")
-    price_extra: Decimal = Field(Decimal("0.00"), ge=0, description="Additional price adjustment")
+    price_extra: Decimal = Field(Decimal("0.00"), description="Additional price adjustment (can be positive or negative)")
     is_active: bool = Field(True, description="Whether variant is active")
 
 
@@ -56,7 +55,7 @@ class VariantUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     sku: Optional[str] = Field(None, max_length=50)
     brand: Optional[str] = Field(None, max_length=100)
-    price_extra: Optional[Decimal] = Field(None, ge=0)
+    price_extra: Optional[Decimal] = None
     is_active: Optional[bool] = None
 
 
@@ -64,7 +63,6 @@ class VariantResponse(VariantBase):
     id: int
     product_id: int
     calculated_price: Optional[Decimal] = Field(None, description="Price including brand adjustment (+560 for Odoo) and price_extra")
-
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -73,7 +71,7 @@ class ProductDetailResponse(ProductResponse):
 
 
 # ==========================================
-# SUBSCRIPTION PLAN SCHEMAS (Task T12)
+# SUBSCRIPTION PLAN SCHEMAS
 # ==========================================
 
 class PlanBase(BaseModel):
@@ -86,8 +84,7 @@ class PlanBase(BaseModel):
     minimum_quantity: int = Field(1, ge=1, description="Minimum quantity for this plan")
     start_date: Optional[date] = None
     end_date: Optional[date] = None
-    
-    # Lifecycle flags decided plan-by-plan by admin (never auto-enabled by default)
+
     auto_close: bool = Field(False, description="Whether plan auto-closes when it ends")
     can_close_early: bool = Field(False, description="Whether plan allows early closure")
     can_pause: bool = Field(False, description="Whether plan allows pausing")
@@ -128,12 +125,11 @@ class PlanUpdate(BaseModel):
 
 class PlanResponse(PlanBase):
     id: int
-
     model_config = ConfigDict(from_attributes=True)
 
 
 # ==========================================
-# TAX RULE SCHEMAS (Task T13)
+# TAX RULE SCHEMAS
 # ==========================================
 
 class TaxBase(BaseModel):
@@ -154,5 +150,4 @@ class TaxUpdate(BaseModel):
 
 class TaxResponse(TaxBase):
     id: int
-
     model_config = ConfigDict(from_attributes=True)
